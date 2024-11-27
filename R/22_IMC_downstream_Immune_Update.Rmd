@@ -1,0 +1,1282 @@
+---
+title: "IMC_downstream"
+author: "Yang Lyu"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    keep_tex: true
+    latex_engine: pdflatex
+    fig_caption: yes
+    highlight: haddock
+    number_sections: yes
+    #latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F,warnings =F, message=F,include=F)
+options(knitr.table.format = 'markdown',encoding = 'UTF-8',warnings =F, message=F ) 
+```
+
+```{r}
+rm(list=ls())
+library(dplyr)
+library(cytomapper)
+```
+
+```{r}
+plot_pixels_with_bcg <- function(image, markers, bcg_adjustments) {
+  # Validate that each marker in markers has a corresponding entry in bcg_adjustments
+  missing_markers <- setdiff(markers, names(bcg_adjustments))
+  if (length(missing_markers) > 0) {
+    stop(paste("Missing BCG adjustments for markers:", paste(missing_markers, collapse = ", ")))
+  }
+  
+  # Plot the images with the specified settings
+  cytomapper::plotPixels(
+    image = image,
+    colour_by = markers,
+    bcg = bcg_adjustments,
+    return_plot = TRUE,
+    image_title = list(
+      position = "topleft",
+      colour = "white",
+      margin = c(0, 5),
+      font = 2,
+      cex = 2
+    ),
+    legend = list(
+      colour_by.title.font = 0.5,
+      colour_by.title.cex = 1,
+      colour_by.labels.cex = 0.5,
+      outline_by.legend.cex = 2,
+      margin = 0
+    )
+  )
+}
+
+```
+
+
+```{r,fig.width=12,fig.height=16,include=T}
+# need a function for create new folder structure that fits steinbock
+SCE_path="/Volumes/lyu.yang/MAC_1/R/Project/22_IMC_downstream/nsp"
+sce <-imcRtools::read_steinbock(SCE_path, return_as = "sce")
+rownames(colData(sce))=paste0(colData(sce)$sample_id,"_",colData(sce)$ObjectNumber)
+colnames(sce)=rownames(colData(sce))
+Sample_anno=data.frame(sample_id = unique(colData(sce)$sample_id))%>%tidyr::separate(.,sample_id,c("patient_id","indication"),remove=F)
+channels=mcols(sce)
+```
+
+
+```{r,fig.width=12,fig.height=16,include=F}
+# load image and annotate
+all_stacks <- cytomapper::loadImages(file.path(SCE_path,"img"), pattern = ".tiff")
+# Retrieve cancer type per patient from metadata file
+mcols(all_stacks)  <- Sample_anno
+cytomapper::channelNames(all_stacks) = channels$name
+
+```
+
+
+```{r}
+# load mask and annotate
+masks= cytomapper::loadImages(file.path(SCE_path,"masks"), pattern = ".tiff")%>%.[1:4]
+#masks <- cytomapper::loadImages(Mask_img_path, pattern ="nuclear_mask.tiff")[c(3:6)]
+mcols(masks)<- Sample_anno
+# data transformation
+for (i in 1:length(masks) ) {
+  Data=masks@listData[[i]]@.Data
+  Data2=Data*255%>%as.integer()
+  masks@listData[[i]]@.Data=Data2
+
+  
+}
+```
+
+# plot cells with segmentation
+
+```{r}
+sampleID=1
+p1=plotCells(mask = masks[sampleID], object = sce[sampleID],
+            cell_id = "ObjectNumber", img_id = "sample_id",return_plot = TRUE)
+
+bcg_adjustments <- list(
+  "CD4" = c(2, 1.2, 0.8),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(2, 1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(10, 2, 1)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+p2=plot_pixels_with_bcg(image = all_stacks[1], markers = markers, bcg_adjustments = bcg_adjustments)
+
+```
+
+```{r}
+p3=plotPixels(all_stacks[1],
+             mask = masks[1], 
+             object = sce,
+             cell_id = "ObjectNumber", img_id = "sample_id",
+             colour_by = c("CD4", "CD68","DNA-Ir1"),
+             return_plot = TRUE,
+             colour = list(CD4 = c("black", "red"), CD68 = c("black", "green"),"DNA-Ir1"=c("black","blue")))
+
+```
+
+
+```{r}
+colData(sce)$CellType=as.character(c(rep(1:4,5824/4)))
+cur_images <- getImages(masks, 1)
+p4=plotCells(mask = cur_images , object = sce,
+            cell_id = "ObjectNumber", img_id = "sample_id",
+            colour_by = "CellType",return_plot = TRUE)
+```
+
+
+```{r}
+# cell ID extractioin example
+#test_mark_file=file.path(SCE_path,"masks","ANNUBP_001.tiff")
+#test_nuc=EBImage::readImage(test_mark_file)
+#y = EBImage::bwlabel(test_nuc)
+#display(normalize(y), title='Segmented')
+
+test=y@.Data
+```
+
+```{r,include=T,fig.width=18,fig.height=12}
+cowplot::plot_grid(p3$plot,p2$plot,p4$plot,ncol= 2)
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+```{r}
+BCG_adjustments <- list(
+  "CD4" = c(3.5, 1.5, 1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(10, 2, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+
+plotPixels(image[1],
+           mask = masks[1], object = sce,
+            cell_id = "ObjectNumber", img_id = "sample_id",
+            colour_by = c("CD4", "CD68","DNA-Ir1"),
+            colour = list(CD4 = c("black", "red"),
+                            CD68 = c("black", "green"),"DNA-Ir1"=c("black","blue")),thick=T,bcg=BCG_adjustments)
+```
+
+```{r}
+bcg_adjustments <- list(
+  "CD4" = c(10, 1.5, 1.3),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(10, 2, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+cytomapper::plotPixels(image = cur_images, colour_by =  markers,img_id = "sample_id")
+
+
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+
+#https://bioconductor.org/packages/release/bioc/vignettes/imcRtools/inst/doc/imcRtools.html
+
+
+```{r,eval=F}
+# testing data
+# https://bodenmillergroup.github.io/imcRtools/articles/imcRtools.html
+# Reading in data
+Steinbock="/Volumes/lyu.yang/MAC_1/R/Project/22_IMC_downstream/Steinbock/210308_ImcTestData/steinbock"
+test_sce <-imcRtools::read_steinbock(Steinbock, return_as = "sce",intensities_folder = "intensities_deepcell",graphs_folder ="neighbors_deepcell" ,regionprops_folder="regionprops_deepcell",extract_names_from = "name")
+test_masks_path="/Volumes/lyu.yang/MAC_1/R/Project/22_IMC_downstream/Steinbock/210308_ImcTestData/steinbock/masks_deepcell"
+dir(test_masks_path)
+test_masks <-cytomapper:: loadImages(test_masks_path, as.is = TRUE)
+colData(test_sce)
+Anno=data.frame(sample_id = names(test_masks ))%>%tidyr::separate(.,sample_id,c("time","NE","patient_id","indication"),remove=F)
+Anno=DataFrame(sample_id = names(test_masks ))
+mcols(test_masks)=Anno
+cytomapper::plotCells(mask = test_masks[3], object = test_sce[3],
+            cell_id = "ObjectNumber", img_id = "sample_id",)
+colData(test_sce)
+output1=test_masks@listData$`20210305_NE_mockData1_003`@.Data
+```
+
+
+# https://www.bioconductor.org/packages/release/bioc/vignettes/cytomapper/inst/doc/cytomapper_ondisk.html
+# https://www.bioconductor.org/packages/release/bioc/vignettes/cytomapper/inst/doc/cytomapper.html
+
+```{r,eval=F}
+# testing data
+data(pancreasMasks)
+data(pancreasImages)
+data(pancreasSCE)
+colnames(colData(pancreasSCE))
+mcols(pancreasSCE)
+mcols(pancreasMasks)
+colData(pancreasSCE)
+mcols(pancreasMasks)
+
+
+```
+
+
+```{r,eval=F}
+plotCells(mask = pancreasMasks, object = pancreasSCE,
+            cell_id = "CellNb", img_id = "ImageNb", colour_by = "CD99",
+            outline_by = "CellType")
+
+
+
+```
+
+
+```{r,eval=F}
+mcols(pancreasImages)
+# Visualize the images - by default the first channel
+plotPixels(pancreasImages)
+
+# Colour the channels
+plotPixels(pancreasImages, img_id="ImageNb",colour_by = c("CD99", "CDH"))
+
+# Outline the cells based on metadata
+plotPixels(pancreasImages, object = pancreasSCE, mask = pancreasMasks,
+            img_id = "ImageNb", cell_id = "CellNb",
+            colour_by = c("CD99", "CDH"), outline_by = "CellType")
+
+# Enhance individual channels
+plotPixels(pancreasImages, colour_by = c("CD99", "CDH"),
+            bcg = list(CD99 = c(0, 2, 1)))
+
+# Subset the images
+cur_images <- getImages(pancreasImages, 1:2)
+plotPixels(cur_images, colour_by = c("CD99", "CDH"))
+
+# Set colour
+plotPixels(pancreasImages, colour_by = c("CD99", "CDH"),
+            colour = list(CD99 = c("black", "green"),
+                            CDH = c("black", "blue")))
+
+colData(pancreasSCE)
+
+colnames(pancreasSCE)
+
+```
+
+# Our data
+
+
+```{r,fig.width=12,fig.height=16,include=T}
+#test_mark_file=file.path(SCE_path,"masks","ANNUBP_001.tiff")
+#test_nuc=EBImage::readImage(test_mark_file)
+#output3=test_nuc@.Data
+#display(test_nuc, method = "raster", all = TRUE)
+#print(test_nuc, short=TRUE)
+```
+
+```{r}
+
+dir(test_masks_path)
+test_mark_file2=file.path(test_masks_path,"20210305_NE_mockData1_003.tiff" )
+test_nuc_2=EBImage::readImage(test_mark_file2)
+output2=test_nuc_2@.Data
+display(test_nuc_2, method = "raster", all = TRUE)
+print(test_nuc_2, short=TRUE)
+```
+
+```{r}
+max(output3)/max(output2)
+output3*65535/255
+
+max(output3*65535)%>%as.integer()/255
+```
+
+```{r}
+max(output1)
+Ratio=output1/output2
+Ratio[1,1]
+```
+
+
+
+
+
+```{r}
+bcg_adjustments <- list(
+  "CD4" = c(2, 1.2, 0.8),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(2, 1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 1.5, 1)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = image[1], markers = markers, bcg_adjustments = bcg_adjustments)
+
+```
+
+```{r}
+
+# Example usage
+bcg_adjustments <- list(
+  "CD4" = c(10, 1, 1),        # CD4: Brightness +10, Contrast *1, Gamma ^1
+  "CD8a" = c(10, 1, 1.1),     # CD8a: Brightness +10, Contrast *1, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)   # DNA-Ir1: Brightness +15, Contrast *3, Gamma ^1.0
+)
+```
+
+```{r}
+set.seed(20240720)
+
+img_ids <- sample(seq_len(length(images)), 4) #define the number of samples
+cur_images <- images[img_ids]
+
+# Normalize each channel between 0 and 1
+cur_images <- cytomapper::normalize(cur_images, separateImages = TRUE)
+
+# Clip channel intensities at 0 and 0.2
+cur_images <- cytomapper::normalize(cur_images, inputRange = c(0, 0.2))
+plotPixels(cur_images,
+#mask = masks[img_ids],
+img_id = "sample_id",
+#missing_colour = "white",
+colour_by = c("DNA-Ir1", "GranzymeB"),
+colour = list(`DNA-Ir1` = c("black", "blue"),
+GranzymeB = c("black", "red")),
+#image_title = NULL,
+legend = list(colour_by.title.cex = 0.9,
+colour_by.labels.cex = 0.9))
+```
+
+
+```{r}
+image=all_stacks[c(1,3)]
+cur_images <- cytomapper::normalize(image, separateImages = TRUE)
+# Clip channel intensities at 0 and 0.2
+cur_images <- cytomapper::normalize(cur_images, inputRange = c(0, 0.5))
+bcg_adjustments <- list(
+  "CD3" = c(2, 1.2, 0.8),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(2, 1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 1, 1)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = image, markers = markers, bcg_adjustments = bcg_adjustments)
+ 
+cytomapper::plotPixels(image = cur_images, colour_by =  markers,img_id = "sample_id",colour = list(CD3 = c("black", "red"),
+                            CD68 = c("black", "blue"),"DNA-Ir1"=c("black","green")))
+
+```
+
+
+
+```{r,fig.width=16,fig.height=20,include=T}
+
+bcg_adjustments <- list(
+  "CD3" = c(10, 1.5, 1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(10, 2, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = cur_images, markers = markers, bcg_adjustments = bcg_adjustments)
+```
+
+
+
+```{r,fig.width=16,fig.height=20,include=T}
+
+bcg_adjustments <- list(
+  "HLA-DR" = c(10, 2, 1.2),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD68" = c(10, 2, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+```
+
+
+ 
+```{r,fig.width=16,fig.height=20,include=T}
+bcg_adjustments <- list(
+  "CD206" = c(10, 1.8, 1.1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD163" = c(10, 1.5, 1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+
+```
+
+```{r,fig.width=12,fig.height=16,include=T}
+ 
+bcg_adjustments <- list(
+  "CD4" = c(10, 1, 1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD8a" = c(10, 1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+# Call the function with the image, markers, and BCG adjustments
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+
+```
+
+
+
+```{r,fig.width=16,fig.height=20,include=T}
+
+bcg_adjustments <- list(
+  "CD14" = c(5, 1.2, 1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD16" = c(10, 2, 1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+```
+
+
+```{r,fig.width=16,fig.height=20,include=T}
+
+bcg_adjustments <- list(
+  "CD4" = c(5, 1, 1.2),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD8a" = c(10,1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+```
+
+```{r,fig.width=16,fig.height=20,include=T}
+
+bcg_adjustments <- list(
+  "CD8a" = c(10, 1, 1.2),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD3" = c(10,1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+markers <- names(bcg_adjustments)
+plot_pixels_with_bcg(image = all_stacks, markers = markers, bcg_adjustments = bcg_adjustments)
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+
+
+```{r,fig.width=12,fig.height=16,include=T}
+bcg_adjustments <- list(
+  "CD4" = c(10, 1, 1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD8a" = c(10, 1, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+cytomapper::plotPixels(image =all_stacks,colour_by = c("CD4", "CD8a", "DNA-Ir1"),bcg = bcg_adjustments,
+                       image_title = list(position = "topleft",
+                                colour = "white",
+                                margin = c(0,5),
+                                font = 2,
+                                cex = 2),
+                        legend = list(colour_by.title.font = 0.5,
+                        colour_by.title.cex = 2,
+                        colour_by.labels.cex = 1,
+                        outline_by.legend.cex = 2,
+                        margin = 0))
+
+```
+
+
+```{r,fig.width=12,fig.height=16,include=T}
+bcg_adjustments <- list(
+  "CD206" = c(10, 1.8, 1.1),        # CD3: Brightness +10, Contrast *1.2, Gamma ^0.9
+  "CD163" = c(10, 1.5, 1.1),        # CD68: Brightness +5, Contrast *1.0, Gamma ^1.1
+  "DNA-Ir1" = c(15, 3, 1.0)      # DNA-Ir1: Brightness +8, Contrast *1.1, Gamma ^1.0
+)
+cytomapper::plotPixels(image =all_stacks,colour_by = c("CD206", "CD163", "DNA-Ir1"),bcg = bcg_adjustments)
+
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+
+```{r}
+# Create a DataFrame for sample annotations
+Sample_anno <- DataFrame(
+  sample_id = names(all_stacks),
+  indication = c("ANNUBP", "ANNUBP", "PN", "PN"),
+  patient_id = "WU-X",
+  img_id = seq_along(all_stacks)  # Sequential img_id for each image
+)
+
+# Assign the metadata to all_stacks
+mcols(all_stacks) <- Sample_anno
+
+# Repeat for masks with mark_anno metadata
+ROI <- gsub(".*\\-", "", names(masks)) %>% gsub("_nuclear_mask", "", .)
+mark_anno <- DataFrame(
+  img_id = seq_along(masks),
+  indication = c("ANNUBP", "ANNUBP", "PN", "PN"),
+  patient_id = "WU-X",
+  ROI = ROI
+)
+
+mcols(masks) <- mark_anno
+
+print(mcols(all_stacks))
+print(mcols(masks))
+print(mcols(all_stacks)$img_id)
+
+cytomapper::plotPixels(image = all_stacks[1], colour_by = c("CD3", "CD68", "DNA-Ir1"))
+```
+
+
+```{r,fig.width=8,fig.height=12}
+cytomapper::channelNames(image) = Panel_1$target
+dir(SPE_path)
+
+
+names(masks)=
+
+mask = masks["ANNUBP_001"] 
+cytomapper::plotPixels(image =image, colour_by = c("CD3", "CD68", "DNA-Ir1"))
+```
+
+
+```{r,fig.width=8,fig.height=12}
+spe_mask <- cytomapper::measureObjects(mask,image )
+```
+
+
+```{r}
+#%>%setNames(c("channel","name","keep"))
+#Panel_2=read.csv(file.path(Rawdata_path,"metadata_2.csv"))
+
+dir(file.path(SPE_path,"Expression"))
+spe_data <- imcRtools::read_steinbock(path =SPE_path ,
+                      intensities_folder = "Expression/Pixel_removal",regionprops_folder=NULL,image_file=NULL,panel_file = file.path(Rawdata_path,"metadata.csv"),extract_names_from="metal",
+                      graphs_folder = "Expression_neighbours", extract_cellid_from = "label",
+                      extract_coords_from = c("centroid-1", "centroid-0"), return_as = c("spe"))
+
+
+expression_path <- file.path(SPE_path, "Expression","Pixel_removal")
+
+dir(expression_path)
+
+exp_data=read.csv(file.path(expression_path,"MRC_KY_9391_S2251128A19_spleen-roi_1_hot_pixel_removal.cells.csv" ))
+colnames(exp_data)
+
+
+```
+
+
+
+```{r}
+df=exp_data%>%as.data.frame()
+mean_intensity_cols <- df %>% dplyr::select(starts_with("mean_intensity"))
+
+# Calculate mean and standard deviation for each marker
+marker_summary <- mean_intensity_cols %>%
+  summarise(across(everything(), list(mean = mean, sd = sd), na.rm = TRUE))
+morph_cols <- df %>% dplyr::select(area, perimeter, eccentricity, solidity)
+
+# Summary statistics for morphological properties
+morph_summary <- morph_cols %>%
+  summarise(across(everything(), list(mean = mean, sd = sd, min = min, max = max), na.rm = TRUE))
+grouped_summary <- df %>%
+  group_by(label) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+```
+
+
+
+```{r}
+expression_files_name= list.files(expression_path, full.names = FALSE)%>%gsub(".cells.csv","",.)
+rownames(assay(spe_data))=expression_files_name
+```
+
+
+############################################################################################################################################
+
+
+```{r}
+library(cytomapper)
+data(pancreasSCE)
+data(pancreasImages)
+data(pancreasMasks)
+pancreasImages
+pancreasMasks
+mcols(pancreasImages)
+plotPixels(image = pancreasImages, colour_by = c("H3", "CD99", "CDH"),img_id = 1)
+```
+
+
+
+```{r}
+#https://bodenmillergroup.github.io/cytomapper/articles/cytomapper.html
+path.to_mask <- file.path(SPE_path, "Segmentation_color")
+dir(path.to_mask)
+all_masks <-  cytomapper::loadImages(path.to_mask, pattern = "MRC_KY_9391_S2251128A19_spleen-roi_1_hot_pixel_removal.cells_nuclei_seg_color.png")
+
+```
+
+
+```{r}
+# Need transform mcd to  tiff 
+library(imcRtools)
+
+colnames(MCD_txt)
+# Extract the channel names from the metadata
+channel_names <- mcd_data$channels
+```
+
+
+```{r}
+all_stacks <- cytomapper::loadImages(path.to.images, pattern = ".tiff")
+
+image=all_stacks[1]
+cytomapper::channelNames(image)  
+
+
+channelNames(all_stacks)=list.files(path.to.images)%>%gsub(".tiff","",)
+spe_mask <- cytomapper::measureObjects(all_masks, all_stacks, img_id = "ImageNb")
+```
+
+
+```{r}
+images <- loadImages("/Users/hirbea/Desktop/Kuangying/Thesis/IMC/downstream_analysis/nsp/img/")
+channelNames(images) <- rownames(spe_immune_nsp)
+
+# Read in segmentation masks as a CytoImageList container:
+channelNames(all_stacks)
+
+Mask_path=file.path(SPE_path, "Segmentation_color")
+dir(Mask_path)
+masks <-cytomapper::loadImages(Mask_path,pattern = "_hot_pixel_removal.cells_nuclei_seg_color")
+cytomapper::channelNames(masks )
+
+masks$`MRC_KY_9391_S2251128A19_spleen-roi_1_hot_pixel_removal.cells_nuclei_seg_color`
+
+
+
+
+
+
+
+```
+ 
+
+#Process `spe_immune_nsp`, stratify immune cell markers from here:
+
+```{r}
+library(tidyverse)
+colnames(spe_immune_nsp) <- paste0(spe_immune_nsp$sample_id, "_", spe_immune_nsp$ObjectNumber)
+
+# Read patient metadata; remove normal spleen samples from `meta`
+meta <- read_csv("/Users/hirbea/Desktop/Kuangying/Thesis/IMC/downstream_analysis/nsp/sample_metadata.csv") 
+
+# Extract patient id and ROI id from sample name
+spe_immune_nsp$patient_id <- str_extract(spe_immune_nsp$sample_id, "ANNUBP|PN") # remove Spleen here
+spe_immune_nsp$ROI <- str_extract(spe_immune_nsp$sample_id, "00[1-2]")
+
+# Store cancer type in SPE object (immune cell markers only)
+spe_immune_nsp$indication <- meta$Indication[match(spe_immune_nsp$patient_id, meta$`Sample ID`)]
+
+# Specify which channels to use for downstream analysis
+rowData(spe_immune_nsp)$use_channel <- !grepl("DNA|Histone|ICSK|EGFR|Vimentin|PDPN|PanCK|Ecadherin|GFAP|Bcatenin|TUBB3|Ki67|CollagenTypeI|aSMA", rownames(spe_immune_nsp)) # 35-17=18 markers left
+
+rownames(spe_immune_nsp)
+rowData(spe_immune_nsp)$use_channel
+
+# Transform the counts
+assay(spe_immune_nsp, "exprs") <- asinh(counts(spe_immune_nsp)/1)
+
+```
+
+# Read in multichannel images as a CytoImageList container using the cytomapper package：
+```{r}
+
+library(cytomapper)
+images <- loadImages("/Users/hirbea/Desktop/Kuangying/Thesis/IMC/downstream_analysis/nsp/img/")
+channelNames(images) <- rownames(spe_immune_nsp)
+
+```
+
+# Read in segmentation masks as a CytoImageList container:
+```{r}
+masks <- loadImages("/Users/hirbea/Desktop/Kuangying/Thesis/IMC/downstream_analysis/nsp/masks2/", as.is = TRUE)
+
+```
+
+
+For downstream visualization and analysis tasks, additional metadata needs to be added to
+the CytoImageList objects storing the multichannel images and segmentation masks.
+```{r}
+# Extract patient id from image name
+patient_id <- str_extract(names(images), "ANNUBP|PN") #remove Spleen samples here
+
+# Retrieve cancer type per patient from metadata file
+indication <- meta$Indication[match(patient_id, meta$`Sample ID`)]
+
+# Store patient and image level information in elementMetadata
+mcols(images) <- mcols(masks) <- DataFrame(sample_id = names(images),
+patient_id = patient_id,
+indication = indication)
+```
+
+## Quality control
+
+Outline cells on composite images for visual assessment of segmentation quality. For visualization purposes, we subset three images and outline all cells on composite images after channel normalization.
+```{r}
+
+set.seed(20240720)
+
+img_ids <- sample(seq_len(length(images)), 4) #define the number of samples
+cur_images <- images[img_ids]
+
+# Normalize each channel between 0 and 1
+cur_images <- cytomapper::normalize(cur_images, separateImages = TRUE)
+
+# Clip channel intensities at 0 and 0.2
+cur_images <- cytomapper::normalize(cur_images, inputRange = c(0, 0.2))
+plotPixels(cur_images,
+mask = masks[img_ids],
+img_id = "sample_id",
+missing_colour = "white",
+colour_by = c("DNA-Ir1", "CD68"),
+colour = list(`DNA-Ir1` = c("black", "blue"),
+CD68 = c("black", "red")),
+#image_title = NULL,
+legend = list(colour_by.title.cex = 0.9,
+colour_by.labels.cex = 0.9))
+
+#plotPixels(images) works
+```
+
+Visualize the distribution of the cell area (and filter out small cells?):
+```{r}
+library(dittoSeq)
+dittoPlot(spe_immune_nsp, var = "area",
+group.by = "sample_id",
+plots = "boxplot") +
+ylab("Cell area") + xlab("")
+#spe_immune_nsp <- spe_immune_nsp[,spe_immune_nsp$area >= 5]
+```
+
+Visualize the image area covered by cells per image:
+```{r}
+
+# Compute the fraction of image area covered by cells
+cell_density <- colData(spe_immune_nsp) %>%
+as.data.frame() %>%
+group_by(sample_id) %>%
+# Compute the number of pixels covered by cells and
+# the total number of pixels
+summarize(cell_area = sum(area),
+no_pixels = mean(width_px) * mean(height_px)) %>%
+# Divide the total number of pixels
+# by the number of pixels covered by cells
+mutate(covered_area = cell_area / no_pixels)
+# Visualize the image area covered by cells per image
+ggplot(cell_density) +
+geom_point(aes(sample_id, covered_area)) +
+theme_minimal(base_size = 15) +
+theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 15)) +
+ylim(c(0, 1)) +
+ylab("% covered area") + xlab("")
+
+
+
+```
+
+Visualize staining differences between samples for selected markers:
+
+```{r}
+multi_dittoPlot(spe_immune_nsp, vars = c("CD3", "CD4", "CD20", "CD206", "CD68", "CD8a"),
+group.by = "patient_id", plots = c("ridgeplot"),
+assay = "exprs")
+
+```
+
+Visualize low-dimensional embeddings of single cells:
+```{r}
+#install.packages("Matrix", type = "source")
+#install.packages("irlba", type = "source")
+library(Matrix)
+library(irlba)
+library(scater)
+library(RSpectra)
+library(dittoSeq)
+set.seed(240721)
+
+spe_immune_nsp <- runUMAP(spe_immune_nsp, subset_row = rowData(spe_immune_nsp)$use_channel,exprs_values = "exprs")
+
+# Visualize the UMAP embedding and color cells by patient ID
+dittoDimPlot(spe_immune_nsp, var = "patient_id",
+reduction.use = "UMAP", size = 0.2) +
+ggtitle("Patient ID on UMAP")
+
+```
+
+DO NOT Perform batch correction to remove sample-to-sample differences (since they are from different tissues; not the same as Bodermiller Lab's samples):
+```{r}
+#library(batchelor)
+
+#set.seed(240722)
+
+# Perform batch correction
+#out <- fastMNN(spe_immune_nsp, batch = spe_immune_nsp$patient_id,
+#auto.merge = TRUE,
+#subset.row = rowData(spe_immune_nsp)$use_channel,
+#assay.type = "exprs")
+
+# Store corrected embeddings in SPE object
+#reducedDim(spe_immune_nsp, "fastMNN") <- reducedDim(out, "corrected")
+
+# Compute UMAP on corrected embeddings
+#spe_immune_nsp <- runUMAP(spe_immune_nsp, dimred= "fastMNN", name = "UMAP_mnnCorrected")
+
+# Visualize corrected UMAP
+#dittoDimPlot(spe_immune_nsp, var = "patient_id",
+#reduction.use = "UMAP_mnnCorrected", size = 0.2) +
+#ggtitle("Patient ID on UMAP after correction")
+
+
+
+
+
+
+```
+
+## Cell phenotyping
+# Cell phenotyping via clustering
+Note:This can be helpful to automatically obtain a “reasonable” clustering, though in practice, the clustering that yields the strongest separation often does not provide the most biological insight.
+
+Estimate optimal clustering parameters for graph-based clustering on the cell embeddings after batch correction:
+```{r}
+library(bluster)
+library(BiocParallel)
+
+# Select the corrected cell embeddings for clustering
+#mat <- reducedDim(spe_immune_nsp, "fastMNN") #use "UMAP" rather than "fastMNN" here
+mat <- reducedDim(spe_immune_nsp, "UMAP")
+
+# Perform the cluster sweep
+combinations <- clusterSweep(mat, BLUSPARAM=SNNGraphParam(),
+k=c(10L, 20L, 23L, 25L, 26L, 27L, 28L, 29L, 30L, 35L, 40L), #k=29 has highest mean silhouette width
+type = c("rank", "jaccard"),
+cluster.fun = "louvain",
+BPPARAM = SerialParam(RNGseed = 230214))
+
+# Compute the average silhouette width per parameter combination
+sil <- vapply(as.list(combinations$clusters),
+function(x) mean(approxSilhouette(mat, x)$width), 0)
+
+# Visualize the average silhouette width per parameter
+# combination
+ggplot(data.frame(method = names(sil),
+sil = sil)) +
+geom_point(aes(method, sil), size = 3) +
+theme_classic(base_size = 15) +
+theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+xlab("Cluster parameter combination") +
+ylab("Average silhouette width")
+```
+
+On the basis of the selected parameters, cells are clustered using a graph-based algorithm:
+```{r}
+library(scran)
+
+set.seed(240722)
+
+clusters <- clusterCells(spe_immune_nsp,
+use.dimred = "UMAP", #use "UMAP" rather than "fastMNN" here
+BLUSPARAM = SNNGraphParam(k = 29,
+cluster.fun = "louvain",
+type = "rank"))
+spe_immune_nsp$nn_clusters <- clusters
+```
+
+#Quantifying clustering behavior
+Silhouette width:
+
+```{r}
+# Performing the calculations on the PC coordinates, like before
+library(bluster)
+sil #k=29 highest
+```
+
+```{r}
+#hold on clustering manuual check
+```
+
+
+
+
+To annotate the individual clusters based on cell phenotypes contained within, the marker expression per cluster can be visualized in the form of a heatmap:
+```{r}
+library(viridis)
+
+set.seed(220619)
+
+cur_cells <- sample(seq_len(ncol(spe_immune_nsp)), 5824) #5824 cells are selected for visualization purposes; could randomly selected any number of cells < total number here
+#dittoHeatmap(spe_immune_nsp[,cur_cells],
+dittoHeatmap(spe_immune_nsp,
+genes = rownames(spe_immune_nsp)[rowData(spe_immune_nsp)$use_channel],
+assay = "exprs", scale = "none",
+heatmap.colors = viridis(100),
+annot.by = c("nn_clusters", "patient_id"))
+```
+
+After observing cluster-specific expression patterns, the individual clusters can be annotated:
+```{r}
+cluster_celltype <- recode(spe_immune_nsp$nn_clusters,
+"1" = "CD8+ T Cells_1",
+"21" = "CD8+ T Cells_2",
+"8" = "CD4+ T Cells",
+"15" = "CD4+ Treg Cells_1",
+"18" = "CD4+ Treg Cells_2",
+"5" = "B Cells",
+"2" = "M2 Macrophages_1",
+"6" = "M2 Macrophages_2",
+"10" = "M2 Macrophages_3",
+"3" = "M1 Macrophages",
+"19" = "Monocytes", #check mcd
+"4" = "4",
+"7" = "7",
+"9" = "9",
+"11" = "11",
+"12" = "12",
+"13" = "13",
+"14" = "14",
+"16" = "16",
+"17" = "17",
+"20" = "20") #21 clusters in total, reorder as desired immune cells order; not work for changing cluster orders
+spe_immune_nsp$cluster_celltype <- cluster_celltype
+
+
+#celltype <- as.character(cluster_celltype) #no effect
+#spe_immune_nsp$celltype <- celltyp
+#cell_id <- as.character(spe_immune_nsp$ObjectNumber) #must be integer
+#spe_immune_nsp$cell_id <- cell_id #must be integer
+
+#c("CD8+ T Cells_1","CD8+ T Cells_2","CD4+ T Cells","CD4+ Treg Cells_1","CD4+ Treg Cells_2", 
+#             "B Cells",
+#             "M2 Macrophages_1","M2 Macrophages_2","M2 Macrophages_3","M1 Macrophages",
+#             "Monocytes",
+#             "4","7","9","11","12","13","14","16","17","20")
+#)
+```
+
+# Classification-based cell phenotyping (optional)
+Gate individual cell phenotypes based on their marker expression using the cytomapperShiny function included in the cytomapper package.Per image, cells are gated based on their marker expression in a hierarchical fashion to define expected cell phenotypes. The gated cells are then visualized as outlines on pseudo-colored composite images.Once the correct cells are labeled, they can be downloaded as a SpatialExperiment object storing only the selected cells. During download, the cell label can be specified, which is stored in the cytomapper_CellLabel entry of the colData slot for later use in training a classifier.
+```{r}
+#cytomapperShiny(object = spe_immune_nsp, mask = masks, image = images,
+#cell_id = "ObjectNumber", img_id = "sample_id")
+```
+
+...
+
+Visualize cell phenotype and annotated cluster labels on the UMAP embedding to qualitatively assess the cell phenotyping:
+```{r}
+p1 <- dittoDimPlot(spe_immune_nsp, var = "cluster_celltype",
+reduction.use = "UMAP", size = 0.2,
+do.label = TRUE) +
+ggtitle("Cell types on UMAP, integrated cells") #use UMAP rather than UMAP_mnnCorrected here
+#p2 <- dittoDimPlot(spe_immune_nsp, var = "cluster_celltype",
+#reduction.use = "UMAP_mnnCorrected", size = 0.2,
+#do.label = TRUE) +
+#ggtitle("Cluster cell types on UMAP, integrated cells")
+#p1 + p2 #p2 use spe_immune_nsp$celltype
+p1
+```
+
+Visualize mean marker expression per cell phenotype and per annotated cluster as heatmaps:
+```{r}
+library(scuttle)
+# Calculate the mean of the arsinh-transformed counts per cell phenotype
+#celltype_mean <- aggregateAcrossCells(as(spe_immune_nsp, "SingleCellExperiment"),
+#ids = spe_immune_nsp$celltype,
+#statistics = "mean",
+#use.assay.type = "exprs",
+#subset_row = rowData(spe_immune_nsp)$use_channel)
+#dittoHeatmap(celltype_mean,
+#assay = "exprs", cluster_cols = TRUE,
+#scale = "none",
+#heatmap.colors = viridis(100),
+#annot.by = c("celltype", "ncells"))
+
+# Calculate the mean of the arsinh-transformed counts per annotated
+# cluster
+cluster_mean <- aggregateAcrossCells(as(spe_immune_nsp, "SingleCellExperiment"),
+ids = spe_immune_nsp$cluster_celltype,
+statistics = "mean",
+use.assay.type = "exprs",
+subset_row = rowData(spe_immune_nsp)$use_channel)
+dittoHeatmap(cluster_mean,
+assay = "exprs", cluster_cols = TRUE,
+scale = "none",
+heatmap.colors = viridis(100),
+annot.by = c("cluster_celltype", "ncells"))
+```
+
+cluster heatmap for mannual cell phenotyping:
+```{r}
+# Columns: calculate the mean of the arsinh-transformed counts per annotated cluster;
+# gather clusters together in desired order (immune cells) rather than merging them: `cluster_cols = FALSE`;
+# show cell number using annotation bar area rather than legend color: remove "ncells"; 
+# Rows: reorder immune cell markers as T cells, B cells, macrophages, neutruphils, NK, DC, etc.
+# so that the heatmap could be more neat and clear
+
+cluster_mean <- aggregateAcrossCells(as(spe_immune_nsp, "SingleCellExperiment"),
+ids = spe_immune_nsp$cluster_celltype,
+statistics = "mean",
+use.assay.type = "exprs",
+subset_row = rowData(spe_immune_nsp)$use_channel)
+
+spe_immune_nsp$cluster_celltype <- factor(
+spe_immune_nsp$cluster_celltype,
+levels = c("CD8+ T Cells_1","CD8+ T Cells_2","CD4+ T Cells","CD4+ Treg Cells_1","CD4+ Treg Cells_2", 
+             "B Cells",
+             "M2 Macrophages_1","M2 Macrophages_2","M2 Macrophages_3","M1 Macrophages",
+             "Monocytes",
+             "4","7","9","11","12","13","14","16","17","20")
+) #work for changing cluster orders
+
+#dittoHeatmap(spe_immune_nsp[,cur_cells],
+dittoHeatmap(spe_immune_nsp,
+assay = "exprs", cluster_cols = FALSE, cluster_rows=FALSE,
+scale = "none",
+heatmap.colors = viridis(100),
+annot.by = c("cluster_celltype","patient_id","sample_id"), # could add `patient_id`
+genes = c("CD3","CD8a","CD4","FOXP3",
+          "LAG3","CD45RO","GranzymeB","CD20",
+          "CD68","HLADR",
+          "CD163","CD206",
+          "CD11b","CD31","CD14","CD16","CD15","CD66b"
+          )) #GranzymeB not work
+
+
+```
+Try sce (skip):
+```{r}
+#sce_immune_nsp <- as(spe_immune_nsp, "SingleCellExperiment")
+#names(colData(sce_immune_nsp))[which(names(colData(sce_immune_nsp))=="sample_id")]="img_id"
+#names(colData(sce_immune_nsp))[which(names(colData(sce_immune_nsp))=="cluster_celltype")]="cell_id"
+
+#mask_sce <- masks
+#names(mcols(mask_sce))[which(names(mcols(mask_sce))=="sample_id")]="img_id"
+
+#plotCells(mask = mask_sce, object = sce_immune_nsp,
+#            img_id = "img_id", cell_id = "cell_id",
+#            colour_by = c("CD3", "CD8a"),
+#            exprs_values = "exprs")
+
+```
+
+Try spe (skip):
+
+```{r}
+#cluster_celltype <- spe_immune_nsp$cluster_celltype
+#cluster_celltype_char <- as.character(cluster_celltype)
+#rownames_char <- spe_immune_nsp@colData@rownames
+#attr(cluster_celltype_char, "names") <- rownames_char
+#spe_immune_nsp$celltype <- cluster_celltype_char
+#celltype and cluster_celltype work in the same way
+```
+
+
+skip this part:
+```{r}
+#cur_masks <- masks[img_ids]
+# Normalize each channel between 0 and 1
+#cur_masks <- cytomapper::normalize(cur_masks)
+                                   #, separateImages = TRUE)
+
+# Clip channel intensities at 0 and 0.2
+#cur_masks <- cytomapper::normalize(cur_masks, inputRange = c(0, 1))
+
+```
+
+
+```{r}
+#cur_id <- sample(unique(spe_immune_nsp$sample_id), 4)
+#cur_spe_immune_nsp <- spe_immune_nsp[,spe_immune_nsp$sample_id %in% cur_id]
+#cur_images_2 <- cur_images[names(cur_images) %in% cur_id]
+#cur_masks <- masks[names(masks) %in% cur_id]
+
+plotPixels(cur_images,
+           mask = masks[img_ids],
+           object = spe_immune_nsp, 
+           cell_id = "ObjectNumber", 
+           img_id = "sample_id",
+           #missing_colour = "white", #not working if have outline_by
+           #colour_by = c("CD3", "CD8a"),
+           outline_by = "cluster_celltype",
+           #bcg = list(CD3 = c(0, 5, 1),
+           #           CD20 = c(0, 5, 1)),
+           #colour = list(cluster_celltype = metadata(spe_immune_nsp)$color_vectors$cluster_celltype),
+           thick = TRUE)
+
+
+
+plotPixels(cur_images,
+mask = masks[img_ids],
+img_id = "sample_id",
+missing_colour = "white"
+#colour_by = c("DNA-Ir1", "CD68"),
+#colour_by = c("CD3", "CD8a"),
+#colour = list(`DNA-Ir1` = c("black", "blue"),
+#CD68 = c("black", "red")),
+#image_title = NULL,
+#legend = list(colour_by.title.cex = 0.9,
+#colour_by.labels.cex = 0.9)
+)
+
+```
+
+
+```{r}
+set.seed(20240720)
+
+img_ids <- sample(seq_len(length(images)), 4) #define the number of samples
+cur_images <- images[img_ids]
+
+# Normalize each channel between 0 and 1
+cur_images <- cytomapper::normalize(cur_images, separateImages = TRUE)
+
+# Clip channel intensities at 0 and 0.2
+cur_images <- cytomapper::normalize(cur_images, inputRange = c(0, 0.2))
+plotPixels(cur_images,
+mask = masks[img_ids],
+object = spe_immune_nsp,
+cell_id = "ObjectNumber", 
+img_id = "sample_id",
+missing_colour = "white", #not working if have outline_by
+colour_by = c("DNA-Ir1", "CD68"),
+colour = list(`DNA-Ir1` = c("black", "blue"),
+CD68 = c("black", "red")),
+#image_title = NULL,
+outline_by = "cluster_celltype")
+
+#plotPixels(images) works
+```
+
+
+
+```{r}
+BCells <- spe_immune_nsp[,spe_immune_nsp$cluster_celltype == "B Cells"]
+
+plotPixels(image = cur_images,
+           mask = masks[img_ids],
+           object = BCells, 
+           #missing_colour = "white",
+           cell_id = "ObjectNumber", img_id = "sample_id",
+           colour_by = "CD20",
+           #outline_by = "cluster_celltype",
+          # bcg = list(CD3 = c(0, 5, 1),
+          #            CD8a = c(0, 5, 1)),
+           colour = list(cluster_celltype = c("B Cells" = "blue")),
+           thick = TRUE
+          )
+```
+
+```{r}
+plotCells(masks[img_ids],
+          object = spe_immune_nsp, 
+          cell_id = "ObjectNumber", 
+          img_id = "sample_id",
+          #outline_by = "cluster_celltype",
+          colour_by = "cluster_celltype",
+          colour = list(cluster_celltype = c("CD8+ T Cells_1" = "blue",
+                                             "CD8+ T Cells_2" = "blue",
+                                             "CD4+ T Cells" = "blue",
+                                             "CD4+ Treg Cells_1" = "blue",
+                                             "CD4+ Treg Cells_2" = "blue",
+                                             "B Cells" = "blue",
+                                             "M2 Macrophages_1" = "blue",
+                                             "M2 Macrophages_2" = "blue",
+                                             "M2 Macrophages_3" = "blue",
+                                             "M1 Macrophages" = "blue",
+                                             "Monocytes" = "blue",
+                                             "4" = "blue",
+                                             "7" = "blue",
+                                             "9" = "blue",
+                                             "11" = "blue",
+                                             "12" = "blue",
+                                             "13" = "blue",
+                                             "14" = "blue",
+                                             "16" = "blue",
+                                             "17" = "blue",
+                                             "20" = "blue")))
+
+```
+
+
+```{r}
+plotCells(masks[img_ids],
+          object = spe_immune_nsp, 
+          cell_id = "ObjectNumber", 
+          img_id = "sample_id",
+          #outline_by = "cluster_celltype",
+          colour_by = "cluster_celltype"
+          )
+
+```
+
+
+```{r}
+plotCells(masks[img_ids],
+          object = spe_immune_nsp, 
+          cell_id = "ObjectNumber", 
+          img_id = "sample_id",
+          colour_by = "area")
+
+```
+
+```{r}
+plotCells(masks[img_ids],
+          object = spe_immune_nsp, 
+          cell_id = "ObjectNumber", 
+          img_id = "sample_id",
+          #outline_by = "cluster_celltype",
+          colour_by = "cluster_celltype")
+```
+
+```{r}
+CD8 <- spe_immune_nsp[,spe_immune_nsp$cluster_celltype == "CD8+ T Cells_1"]
+
+plotCells(masks[img_ids],
+          object = CD8, 
+          cell_id = "ObjectNumber", 
+          img_id = "sample_id",
+          #colour_by = "cluster_celltype",
+          colour = list(cluster_celltype = c(CD8 = "red")),
+          missing_colour = "white")
+```
+
+
+## Spatial analysis
+Perform spatial community analysis as proposed by Jackson et al. using the detectCommunity function provided by the imcRtools package. This method groups cells solely on the basis of their location in the tissue by using a previously constructed spatial cell graph. We perform community detection separately for tumor and nontumor cells.
+
+```{r, include=FALSE}
+# Define if cells are part of the tumor or stroma
+spe_immune_nsp$tumor_stroma <- ifelse(spe_immune_nsp$cluster_celltype == "Tumor")
+# Detect spatial communities
+spe_immune_nsp <- detectCommunity(spe_immune_nsp,
+colPairName = "neighborhood",
+size_threshold = 10,
+group_by = "tumor",
+BPPARAM = SerialParam(RNGseed = 2400801))
+# Visualize spatial tumor communities
+plotSpatial(spe_immune_nsp[,spe_immune_nsp$cluster_celltype == "Tumor"],
+node_color_by = "spatial_community",
+img_id = "sample_id",
+node_size_fix = 0.5) +
+theme(legend.position = "none") +
+scale_color_manual(values = rev(colors()))
+```
+
+
+
+
+
+
+
+
+
