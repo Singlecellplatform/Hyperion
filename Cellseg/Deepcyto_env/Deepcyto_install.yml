@@ -1,0 +1,11 @@
+# conda env create -f Deepcyto_install.yml.
+
+name: Deepcyto
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - nextflow=22.04.0
+  - singularity 
+ 
