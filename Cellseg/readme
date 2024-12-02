@@ -2,5 +2,5 @@ This pipeline was inspired by deepimcyto (https://github.com/FrancisCrickInstitu
 1. Download both the deep-imcyto trained nucleus model weights and the example test dataset from our Zenodo repository (https://doi.org/10.5281/zenodo.7573269)
 2. set up conda environment for Deepcyto by running conda env create -f $(filepath)/Deepcyto_install.yml.
 3. set up conda environment for Tensorflow 2.9 by running conda env create -f $(filepath)/Tensorflow_envs_setup.sh
-4. Process preprocess step by running $(filepath)/Deepcyto_run2.sh
-5. Process nuclei prediction by running $(filepath)/tf_predict.sh
+4. Process preprocess step by running $(filepath)/Deepcyto_run2.sh (correct the path for the py and other files based on your setting)
+5. Process nuclei prediction by running $(filepath)/tf_predict.sh (correct the path for the py and other files based on your setting)
