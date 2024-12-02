@@ -1,1 +1,5 @@
 This pipeline was inspired by deepimcyto (https://github.com/FrancisCrickInstitute/deep-imcyto)
+1. set up conda environment for Deepcyto by running conda env create -f $(filepath)/Deepcyto_install.yml.
+2. set up conda environment for Tensorflow 2.9 by running conda env create -f $(filepath)/Tensorflow_envs_setup.sh
+3. Process preprocess step by running $(filepath)/Deepcyto_run2.sh
+4. Process nuclei prediction by running $(filepath)/tf_predict.sh
