@@ -1,4 +1,3 @@
-# Biospecimen sample annotation system
 # IMC Pipeline
 
 This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto).  
