@@ -5,24 +5,24 @@ It uses Docker to run all these pipelines
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 Make sure you have [Docker](https://www.docker.com/products/docker-desktop) installed and working on your system.
 
 ---
 
-## 🚀 Step 1: Convert MCD Files to TIFF
+## Step 1: Convert MCD Files to TIFF
 
-### 🔹 1.1 Download Test Data in the folder "MCD_to_tiff"
+### 1.1 Download Test Data in the folder "MCD_to_tiff"
 
 Download all the files and folders from the `test_folder` directory into your local project folder.  
 Example: /Volumes/your_name/MAC_1/Docker/IMC_pipeline/test_data
 
-### 🔹 1.2 Place Your MCD Files and metafile
+### 1.2 Place Your MCD Files and metafile
 
 Place all your `.mcd` files and metafile.csv into the `Raw` subfolder of your project directory: /Your_Project/Raw
 
-### 🔹 1.3 Edit `Sample_list.csv`
+### 1.3 Edit `Sample_list.csv`
 
 Open `Sample_list.csv` in your project folder and **replace all paths with `/mnt`**, since Docker will access files using `/mnt`.
 
