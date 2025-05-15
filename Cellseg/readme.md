@@ -32,25 +32,27 @@ Open `Sample_list.csv` in your project folder and **replace all paths with `/mnt
 > With:
 > `/mnt/Raw/sample1.mcd`
 
-### 🔹 1.4 Configure the Script
+### 1.4 Configure the Script
 
 Open the script `1_step1_MCD_tiff.sh` and edit the following line:
 
 WORKING_DIR="/path/to/your/local/project"
 
-### 🔹 1.5 Run the Pipeline
+### 1.5 Run the Pipeline
 
 bash 1_step1_MCD_tiff.sh 
 
 
-## 📁 Example Directory Structure
+## Example Directory Structure
 
+```
 IMC_pipeline/
 ├── 1_step1_MCD_tiff.sh
 ├── Sample_list.csv       # Edited with /mnt paths
 ├── Raw/                  # Contains your .mcd files
 ├── Results/                 # Output TIFFs go here
 
+```
 ---
 
 ## 🧩 Next Steps
