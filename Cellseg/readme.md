@@ -38,9 +38,9 @@ Open the script `1_step1_MCD_tiff.sh` and edit the following line:
 
 WORKING_DIR="/path/to/your/local/project"
 
-### 1.5 Run the Pipeline
+### 1.5 Run the Pipeline in terminal
 
-bash 1_step1_MCD_tiff.sh 
+bash bash 1_step1_MCD_tiff.sh 
 
 
 ## Example Directory Structure
