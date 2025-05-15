@@ -12,4 +12,4 @@ DOCKER_NAME="imctools_run"
  docker run -it --rm \
     --name ${DOCKER_NAME} \
     -v ${WORKING_DIR}:/mnt \
-    $DOCKER_Image /bin/bash -c "ls /mnt/test_data; /sh_files/1_MCD_to_tiff.sh"
+    $DOCKER_Image /bin/bash /sh_files/1_MCD_to_tiff.sh
