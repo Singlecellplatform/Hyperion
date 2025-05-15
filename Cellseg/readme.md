@@ -40,7 +40,7 @@ WORKING_DIR="/path/to/your/local/project"
 
 ### 1.5 Run the Pipeline in terminal
 
-bash bash 1_step1_MCD_tiff.sh 
+bash 1_step1_MCD_tiff.sh 
 
 
 ## Example Directory Structure
@@ -67,7 +67,7 @@ Coming soon:
 ## 🧠 Notes
 
 - Use `--rm` in Docker to auto-remove containers
-- You can customize the mounted directory by changing the `WORKING_DIR` variable
+- You can customize the mounted directory by changing the `WORKING_DIR` variable which is your current working directory
 
 ---
 
