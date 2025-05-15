@@ -1,7 +1,7 @@
 # 🧪 IMC Pipelin
 
 This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto).  
-It uses Docker to convert MCD files to TIFF format.
+It uses Docker to run all these pipelines
 
 ---
 
