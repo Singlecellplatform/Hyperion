@@ -61,3 +61,12 @@ your_project/
 
 
 ```
+```
+## ✅ Step 5: Run the Pipeline
+
+```
+cd /sh_files
+bash Docker_MCD_tiff_pipeline.sh
+bash Docker_run_sc_pipeline.sh
+```
+```
