@@ -22,7 +22,7 @@ Make sure the following are set up correctly:
 
 ```
 
-# ✅ Step 2: Download This GitHub Repository
+## ✅ Step 2: Download This GitHub Repository
 
 You can get the pipeline in two ways:
 
@@ -37,4 +37,17 @@ Click the green Code button on this page
 Select Download ZIP
 
 Extract it into your project folder
+```
+## ✅ Step 3: Prepare Project Folder Structure
+Organize your files like this:
+```
+your_project/
+├── Raw/                         # Raw MCD files
+├── results/                     # Output directory
+│   └── slide_ID/ROI/
+├── PY_function/                # Python scripts
+│   └── 8263899/
+│       └── deep-imcyto_weights/   # Model weights from Zenodo
+├── sh_files/                   # Shell scripts
+├── config.sh  
 ```
