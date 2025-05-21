@@ -5,13 +5,7 @@ It uses Docker to run all these pipelines
 
 ---
 
-## Requirements
-
-Make sure you have [Docker](https://www.docker.com/products/docker-desktop) installed and working on your system.
-
----
-
-## Step 1: Convert MCD Files to TIFF
+## Step 1: Convert MCD Files to TIFF. see the pipeline in the sub folder mcd_to_tiff
  
 
 
