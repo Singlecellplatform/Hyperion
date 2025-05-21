@@ -19,3 +19,14 @@ Make sure the following are set up correctly:
 📂 For instructions on setting up TensorFlow 2.9, refer to the folder: TF2.9
 
 ```
+
+# ✅ Step 2: Download This GitHub Repository
+
+You can get the pipeline in two ways:
+
+### a. Git (recommended)
+
+```bash
+git clone https://github.com/<your-username>/<your-repo>.git
+```
+
