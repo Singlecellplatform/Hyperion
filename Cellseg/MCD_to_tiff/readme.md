@@ -8,7 +8,7 @@ Make sure you have [Docker](https://www.docker.com/products/docker-desktop) inst
 
 ## Step 1: Convert MCD Files to TIFF
 
-### 1.1 Download sh_files and PY_function folder in your project
+### 1.1 Download config.sh, sh_files and PY_function folder in your project
 
 Download all the files and folders from the `test_folder` directory into your local project folder.  
 Example: /Volumes/your_name/MAC_1/Docker/IMC_pipeline/test_data
