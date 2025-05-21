@@ -39,8 +39,10 @@ Select Download ZIP
 Extract it into your project folder
 ```
 ```
-## ✅ Step 3: Prepare Project Folder Structure
-Organize your files like this:
+## ✅ Step 3: Prepare Project Folder Structure 
+🔗 Download model weights from Zenodo:
+https://zenodo.org/records/8263899
+Organize your files/structure like this:
 
 ```
 your_project/
