@@ -56,3 +56,8 @@ your_project/
 ├── config.sh  
 ```
 ```
+```
+## ✅ Step 4: put your mcd files in the Raw folder and Configure the Pipeline by editing the config.sh file:
+
+
+```
