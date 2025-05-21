@@ -31,5 +31,10 @@ You can get the pipeline in two ways:
 ```bash
 git clone https://github.com/Hyperion/Cellseg.git
 ```
+### b. Manual Download
+Click the green Code button on this page
 
+Select Download ZIP
+
+Extract it into your project folder
 ```
