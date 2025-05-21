@@ -20,6 +20,8 @@ Make sure the following are set up correctly:
 
 ```
 
+```
+
 # ✅ Step 2: Download This GitHub Repository
 
 You can get the pipeline in two ways:
@@ -30,3 +32,4 @@ You can get the pipeline in two ways:
 git clone https://github.com/Hyperion/Cellseg.git
 ```
 
+```
