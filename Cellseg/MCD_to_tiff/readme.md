@@ -1,8 +1,3 @@
-# IMC Pipeline
-
-This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto).  
-It uses Docker to run all these pipelines
-
 ---
 
 ## Requirements
