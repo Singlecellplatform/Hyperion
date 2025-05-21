@@ -38,8 +38,10 @@ Select Download ZIP
 
 Extract it into your project folder
 ```
+```
 ## ✅ Step 3: Prepare Project Folder Structure
 Organize your files like this:
+
 ```
 your_project/
 ├── Raw/                         # Raw MCD files
@@ -50,4 +52,5 @@ your_project/
 │       └── deep-imcyto_weights/   # Model weights from Zenodo
 ├── sh_files/                   # Shell scripts
 ├── config.sh  
+```
 ```
