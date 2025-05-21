@@ -1,0 +1,27 @@
+name: tf29
+channels:
+  - conda-forge
+  - defaults
+  - bioconda
+  - nvidia
+
+dependencies:
+  - python=3.8
+  - opencv=4.6
+  #- cudnn=8.2
+  - tini
+  - cudatoolkit=11.4
+  #- cuda-toolkit=11.4
+  - tensorflow=2.9
+  - matplotlib
+  - scanpy
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - seaborn=0.11.2
+  - pillow=9.0
+  - tqdm
+  #- cupy==9.6.0
+  - numpy==1.23.5
+  - jsonschema=4.4.0
+
