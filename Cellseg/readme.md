@@ -10,7 +10,11 @@ It uses Docker to run all these pipelines
 
 ---
 
-## Step 2: Build tensorflow based on the pipleine tf2.9
+## Step 2: Build tensorflow based on the pipleine tf2.9 in subfolder TF2.9
+
+---
+
+## Step 3: Run single cell expression pipeline in Sc_expression_pipeline
 
 ---
 
