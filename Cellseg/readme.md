@@ -5,7 +5,7 @@ It uses Docker to run all these pipelines
 
 ---
 
-## Step 1: Convert MCD Files to TIFF. see the pipeline in the sub folder mcd_to_tiff
+## Step 1: Convert MCD Files to TIFF. see the pipeline in the sub folder MCD_to_tiff
  
 
 
