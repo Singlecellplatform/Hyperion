@@ -3,7 +3,7 @@
 This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto).  
 It uses Docker to run all these pipelines
 
-This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto).
+This pipeline was inspired by [deep-imcyto](https://github.com/FrancisCrickInstitute/deep-imcyto). please use Nat Biotechnol. 2020 Feb 13. doi: 10.1038/s41587-020-0439-x. for the citation
 
 Let’s finish your project in **FIVE simple steps**:
 
