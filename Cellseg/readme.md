@@ -14,7 +14,7 @@ It uses Docker to run all these pipelines
 
 ---
 
-## Step 3: Run single cell expression pipeline in Sc_expression_pipeline
+## Step 3: Run single cell expression pipeline in Sc_expression
 
 ---
 
