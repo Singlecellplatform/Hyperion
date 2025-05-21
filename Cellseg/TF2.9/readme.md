@@ -47,7 +47,7 @@ docker run --runtime=nvidia --gpus all -it --rm \
 ```
  
 4. The correct output after rnning ()
-
+```
 OS                           : Linux-5.4.0-150-generic-x86_64-with-glibc2.10
 Python Version               : 3.8.15
 CuPy Version                 : 10.6.0
@@ -95,5 +95,5 @@ squidpy: 1.1.2
 descartes: 1.1.0
 scanpy: 1.9.1
 imctools: Not Installed
-
+```
   
