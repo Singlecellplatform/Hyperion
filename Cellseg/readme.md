@@ -6,9 +6,11 @@ It uses Docker to run all these pipelines
 ---
 
 ## Step 1: Convert MCD Files to TIFF. see the pipeline in the sub folder MCD_to_tiff
- 
+---
 
+---
 
+## Step 2: Build tensorflow based on the pipleine tf2.9
 
 ---
 
